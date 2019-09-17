@@ -1,0 +1,68 @@
+apply plugin: 'com.android.application'
+
+def config = rootProject.ext
+
+static def releaseTime() {
+    return new Date().format("yyyy-MM-dd", TimeZone.getTimeZone("UTC"))
+}
+android {
+    compileSdkVersion config.android.compileSdkVersion
+    buildToolsVersion config.android.buildToolsVersion
+    defaultConfig {
+        applicationId "com.cymchad.bottomsheet"
+        minSdkVersion config.android.minSdkVersion
+        targetSdkVersion config.android.targetSdkVersion
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments = [AROUTER_MODULE_NAME : project.getName()]
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    android.applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            def outputFile = output.outputFile
+            if (outputFile != null && outputFile.name.endsWith('.apk')) {
+                def fileName = outputFile.name.replace("app",
+                        "${defaultConfig.applicationId}_${defaultConfig.versionName}_${releaseTime()}" )
+                outputFileName = fileName
+            }
+        }
+    }
+    configurations.all {
+        // 指定某个库的版本
+        resolutionStrategy.force "com.android.support:appcompat-v7:28.0.0"
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation config.dependencies["support-v7"]
+    compile config.dependencies["support-design"]
+    implementation config.dependencies["constraint-layout"]
+    testImplementation config.dependencies["junit"]
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+    // 在壳中，导入各业务组件
+    if (isNeedLib1Module.toBoolean()) {
+        implementation project(':library_1')
+    }
+    if (isNeedLib2Module.toBoolean()) {
+        implementation project(':library_2')
+    }
+    // 万能适配器
+    implementation config.dependencies["base-recyclerview-adapter"]
+    // ARouter 在业务组件中，需要导入路由的编译期依赖库、以及所有的基础组件
+    compile config.dependencies["arouter-api"]
+    annotationProcessor config.dependencies["arouter-compiler"]
+    // Common
+    implementation project(':lib_common')
+}
